@@ -1,0 +1,43 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: uniapp-backend
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/uniapp
+    username: root
+    password: ""
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    hibernate:
+      ddl-auto: update         # <<< Hibernate crea/actualiza tablas solo
+    show-sql: true
+    open-in-view: false
+    properties:
+      hibernate.jdbc.time_zone: UTC
+
+  # Desactiva Flyway en DEV para no depender de migraciones
+  flyway:
+    enabled: false
+
+# Swagger / OpenAPI
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /doc/swagger-ui.html
+
+
+# JWT (DEV): secreto por defecto embebido (sin variables de entorno)
+app:
+  jwt:
+    secret: "dev-secret"      # en DEV vale; nuestro JwtService lo robustecerá
+    expiration-minutes: 1440
+  cors:
+    allowed-origins: "http://localhost:4200,http://127.0.0.1:4200"
