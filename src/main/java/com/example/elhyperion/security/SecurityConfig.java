@@ -49,7 +49,8 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
-                                "/doc/**"                 // <--- añade esto para tu path custom
+                                "/doc/**",  // <--- añade esto para tu path custom
+                                "/files/**"
                         ).permitAll()
 
                         // si usas Spring Data REST

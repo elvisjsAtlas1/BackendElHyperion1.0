@@ -2,11 +2,20 @@ package com.example.elhyperion.course;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/materials")
@@ -88,4 +97,65 @@ public class MaterialController {
         materials.deleteById(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Material> upload(
+            @RequestParam Long courseId,
+            @RequestParam(required = false) Long weekId,
+            @RequestPart("file") MultipartFile file
+    ) {
+        try {
+            var courseOpt = courses.findById(courseId);
+            if (courseOpt.isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+
+            // Carpeta donde se guardan los archivos
+            Path uploadDir = Paths.get("uploads");
+            if (!Files.exists(uploadDir)) {
+                Files.createDirectories(uploadDir);
+            }
+
+            String original = file.getOriginalFilename();
+            String ext = "";
+            if (original != null && original.contains(".")) {
+                ext = original.substring(original.lastIndexOf("."));
+            }
+            String storedName = UUID.randomUUID() + ext;
+            Path target = uploadDir.resolve(storedName);
+
+            // Guardar en disco
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+
+            String mime = file.getContentType();
+
+            Material.Type type;
+            if (mime != null && mime.startsWith("image/")) {
+                type = Material.Type.IMG;
+            } else {
+                type = Material.Type.DOC;
+            }
+
+            // URL pública que usará la app
+            String url = "/files/" + storedName;
+
+            var m = new Material();
+            m.setCourse(courseOpt.get());
+            if (weekId != null) {
+                weeks.findById(weekId).ifPresent(m::setWeek);
+            }
+            m.setTitle(original != null ? original : storedName);
+            m.setType(type);
+            m.setInfoText(null);
+            m.setUrl(url);
+            m.setMime(mime);
+
+            Material saved = materials.save(m);
+            return ResponseEntity.ok(saved);
+
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
 }
